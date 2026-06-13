@@ -1,0 +1,26 @@
+{{- if eq .chezmoi.os "windows" }}
+
+# --- Restore Windows 10-style context menu on Windows 11 --- 
+
+reg.exe add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve | Out-Null 
+
+# --- Add "Open with Code in WSL" context menu item --- 
+
+$label = "Open with Code in WSL" 
+$icon = "C:\Program Files\Microsoft VS Code\Code.exe" 
+
+$menuKey = "HKCU\Software\Classes\Directory\Background\shell\VSCodeWSL" 
+$commandKey = "$menuKey\command" 
+reg.exe add $menuKey /f /ve /d $label | Out-Null 
+reg.exe add $menuKey /f /v "Icon" /d $icon | Out-Null 
+reg.exe add $commandKey /f /ve /d 'wsl.exe --cd "%V" -- code .' | Out-Null 
+
+$folderMenuKey = "HKCU\Software\Classes\Directory\shell\VSCodeWSL" 
+$folderCommandKey = "$folderMenuKey\command" 
+reg.exe add $folderMenuKey /f /ve /d $label | Out-Null 
+reg.exe add $folderMenuKey /f /v "Icon" /d $icon | Out-Null 
+reg.exe add $folderCommandKey /f /ve /d 'wsl.exe --cd "%1" -- code .' | Out-Null
+
+Write-Host "Windows setup complete. Restart Explorer or sign out/in for context menu changes." 
+
+{{- end }}
