@@ -1,0 +1,59 @@
+#!/usr/bin/env sh
+# checksum: {{ include "dot_config/firefox/user.js" | sha256sum }}
+
+set -eu
+
+{{- if eq .chezmoi.os "windows" }}
+    firefox_config_dir='{{ joinPath (env "APPDATA") "Mozilla" "Firefox" }}'
+    firefox_config_dir="$(cygpath -u "$firefox_config_dir")"
+    install_hash='{{ mozillaInstallHash "C:\\Program Files\\Mozilla Firefox" }}'
+
+{{- else if eq .chezmoi.os "darwin" }}
+    firefox_config_dir='{{ joinPath .chezmoi.homeDir "Library" "Application Support" "Firefox" }}'
+    install_hash='{{ mozillaInstallHash "/Applications/Firefox.app/Contents/MacOS" }}'
+
+{{- else if eq .chezmoi.os "linux" }}
+    firefox_config_dir='{{ joinPath .chezmoi.homeDir ".mozilla" "firefox" }}'
+    {{- $firefox := lookPath "firefox" }}
+    {{- if not $firefox }}
+    {{ fail "firefox not found in PATH" }}
+    {{- end }}
+    install_hash='{{ mozillaInstallHash $firefox }}'
+
+{{- else }}
+{{ fail (printf "unsupported OS: %s" .chezmoi.os) }}
+
+{{- end }}
+
+profiles_ini="$firefox_config_dir/profiles.ini"
+
+if [ ! -f "$profiles_ini" ]; then
+    echo "Firefox profiles.ini not found. Start Firefox once, then run chezmoi apply again." >&2
+    exit 0
+fi
+
+profile_path="$(
+    awk -F= -v section="[Install${install_hash}]" '
+        $0 == section { in_section = 1; next }
+        /^\[/ { in_section = 0 }
+
+        in_section && $1 == "Default" {
+            print $2
+            exit
+        }
+    ' "$profiles_ini"
+)"
+
+
+if [ -z "$profile_path" ]; then
+    echo "Could not find Firefox profile for install hash ${install_hash}." >&2
+    exit 1
+fi
+
+dest="$firefox_config_dir/$profile_path"
+
+cat > "$dest/user.js" <<'EOF'
+{{ include "dot_config/firefox/user.js" }}
+EOF
+
+echo "Wrote Firefox user.js to $dest/user.js"

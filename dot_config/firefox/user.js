@@ -1,0 +1,11 @@
+
+// bookmarks
+user_pref("browser.tabs.loadBookmarksInTabs", true);
+
+// url bar
+user_pref("browser.urlbar.suggest.searches", false);
+user_pref("browser.urlbar.suggest.history", false);
+user_pref("browser.urlbar.suggest.bookmark", false);
+user_pref("browser.urlbar.suggest.openpage", false);
+user_pref("browser.urlbar.suggest.topsites", false);
+user_pref("browser.taskbarTabs.enabled", false);
